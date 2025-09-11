@@ -5,9 +5,14 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+permissions:
+  contents: write 
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      jar_name: ${{ steps.prepare_jar.outputs.jar_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,21 +29,21 @@ jobs:
       - name: Prepare JAR
         id: prepare_jar
         run: |
+          JAR_NAME="velocity.jar"
           JAR_PATH=$(find proxy/build/libs -name "*.jar" ! -name "*sources*" ! -name "*javadoc*" | head -n 1)
-          cp "$JAR_PATH" ./velocity.jar
-          echo "JAR_SIZE=$(ls -lh ./velocity.jar | awk '{print $5}')" >> $GITHUB_OUTPUT
+          cp "$JAR_PATH" "./$JAR_NAME"
+          echo "jar_name=$JAR_NAME" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: velocity-artifact
-          path: velocity.jar
+          path: "${{ steps.prepare_jar.outputs.jar_name }}"
 
   release:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      contents: write 
     steps:
       - name: Download Artifact
         uses: actions/download-artifact@v4
@@ -48,7 +53,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: velocity.jar
+          files: "${{ needs.build.outputs.jar_name }}"
           tag_name: ${{ github.ref_name }}
           name: "Velocity ${{ github.ref_name }}"
         env:
