@@ -3,6 +3,8 @@ name: Build and Release Velocity
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'proxy/src/main/java/com/velocitypowered/proxy/Velocity.java'
   workflow_dispatch:
 
 permissions:
